@@ -2,6 +2,8 @@
 #include "FreqCounter.hpp"
 #include <sstream>
 #include "ThreadPool.hpp"
+#include <fstream>
+#include "Logger.hpp"
 
 TEST_CASE("test1")
 {
@@ -114,4 +116,44 @@ TEST_CASE("thread pool test")
                       "2 walrus\n";
 
     REQUIRE(cmp == out_stream.str());
+}
+
+TEST_CASE("empty test")
+{
+    std::ifstream input;
+
+    freq::FreqCounter<std::string> fc;
+
+    auto result = fc.FromStream(input);
+
+    REQUIRE(result);
+
+    std::ostringstream out_stream;
+
+    result = fc.ToStream(out_stream);
+    REQUIRE(result);
+
+    std::string cmp;
+
+    REQUIRE(cmp == out_stream.str());
+}
+
+TEST_CASE("fail test")
+{
+    std::string input = "The time has come, the Walrus said,"
+                        "to talk of many things...";
+
+    std::istringstream stream(input);
+
+    freq::FreqCounter<std::string> fc;
+
+    auto result = fc.FromStream(stream);
+
+    REQUIRE(result);
+
+    std::ofstream out_stream;
+
+    result = fc.ToStream(out_stream);
+    REQUIRE(!result);
+    freq::LOG() << result.err_message;
 }
