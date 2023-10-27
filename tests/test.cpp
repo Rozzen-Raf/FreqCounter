@@ -126,7 +126,8 @@ TEST_CASE("empty test")
 
     auto result = fc.FromStream(input);
 
-    REQUIRE(result);
+    REQUIRE(!result);
+    freq::LOG() << result.err_message;
 
     std::ostringstream out_stream;
 

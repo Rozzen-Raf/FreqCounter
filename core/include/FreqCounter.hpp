@@ -16,6 +16,7 @@ namespace freq
         StreamNotOpen,
         StreamIsFail,
         StreamIsBad,
+        StreamIsEmpty,
     };
 
     struct Result
@@ -65,7 +66,7 @@ namespace
         std::unordered_map<std::string, size_t> &frequency,
         SyncPolicy &sync)
     {
-        while (!stream.eof())
+        // while (!stream.eof())
         {
             if (stream.fail())
             {
@@ -76,12 +77,28 @@ namespace
                 return {freq::Status::StreamIsBad, "Stream is bad"};
             }
 
-            std::string str;
-            stream >> str;
-            // Преобразуем строку сразу в lower_case
-            std::transform(str.begin(), str.end(), str.begin(),
-                           [](unsigned char c)
-                           { return std::tolower(c); });
+            stream.seekg(0, stream.end);
+            size_t length = stream.tellg();
+            stream.seekg(0, stream.beg);
+
+            if (length == -1)
+            {
+                return {freq::Status::StreamIsEmpty, "Stream is empty"};
+            }
+
+            char *buffer = nullptr;
+            try
+            {
+                buffer = new char[length];
+                stream.read(buffer, length);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << " " << length << '\n';
+            }
+
+            std::string str(buffer, length);
+
             size_t start_word = 0;
             size_t end_word = 0;
 
@@ -103,12 +120,15 @@ namespace
                 if (!std::isalpha(str[end_word]))
                 {
                     // Найден конец слова, необходимо выделить и поместить ответ
-                    std::string word = str.substr(start_word, end_word - start_word);
-
+                    std::string word = std::move(str.substr(start_word, end_word - start_word));
                     if (!word.empty())
                     {
+                        std::transform(word.begin(), word.end(), word.begin(),
+                                       [](unsigned char c)
+                                       { return std::tolower(c); });
+
                         std::lock_guard<SyncPolicy> guard(sync);
-                        ++frequency[word];
+                        ++frequency[std::move(word)];
                     }
                     start_word = end_word;
                     // Найдем следующее слово
@@ -118,15 +138,20 @@ namespace
             }
 
             // Добавим последнее слово
-            std::string word = str.substr(start_word, end_word - start_word);
+            std::string word = std::move(str.substr(start_word, end_word - start_word));
 
             if (!word.empty())
             {
-                std::lock_guard<SyncPolicy> guard(sync);
-                ++frequency[word];
-            }
-        }
+                std::transform(word.begin(), word.end(), word.begin(),
+                               [](unsigned char c)
+                               { return std::tolower(c); });
 
+                std::lock_guard<SyncPolicy> guard(sync);
+                ++frequency[std::move(word)];
+            }
+
+            delete[] buffer;
+        }
         return {freq::Status::Success};
     }
 
@@ -144,11 +169,11 @@ namespace
             {
                 if (l.second != r.second)
                 {
-                    return l.second < r.second;
+                    return l.second > r.second;
                 }
                 else
                 {
-                    return l.first > r.first;
+                    return l.first < r.first;
                 }
             }
         };
@@ -165,7 +190,8 @@ namespace
             pq = std::priority_queue<
                 std::pair<T, int>,
                 std::vector<std::pair<T, int>>,
-                Comp>(freq.begin(), freq.end());
+                Comp>(freq.begin(),
+                      freq.end());
         }
 
         // Выводим все элементы в нужном порядке. Так как куча в себе принимает все элементы хэш-таблицы,

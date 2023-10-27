@@ -5,9 +5,11 @@
 #include <map>
 #include "ThreadPool.hpp"
 #include "SyncPolicy.hpp"
-
+#include <filesystem>
+#include <chrono>
 int main(int argc, char **argv)
 {
+    auto time1 = std::chrono::steady_clock::now();
     // парсим командную строку
     auto result = freq::settings_from_cli_arguments(argc, argv);
 
@@ -19,19 +21,13 @@ int main(int argc, char **argv)
 
     auto settings = std::move(result.value.value());
 
-    freq::ThreadPool pool(8);
-
     // при создании FreqCounter указываем ему мультипоточную стратегию синхронизации
-    freq::FreqCounter<std::string, freq::MultiThreadPolicy<>> fc;
+    freq::FreqCounter<std::string> fc;
 
     // выполнение формирования счетчика частот из файла
     {
         std::ifstream is(settings.input_file, std::ios_base::in);
-
-        auto future = pool.enqueue([&fc, &is]()
-                                   { return fc.FromStream(is); });
-
-        auto res = future.get();
+        auto res = fc.FromStream(is);
         if (!res)
         {
             freq::LOG() << res.err_message;
@@ -42,14 +38,16 @@ int main(int argc, char **argv)
     {
         std::ofstream of(settings.output_file, std::ios_base::out);
 
-        auto future = pool.enqueue([&fc, &of]()
-                                   { return fc.ToStream(of); });
-        auto res = future.get();
+        auto res = fc.ToStream(of);
         if (!res)
         {
             freq::LOG() << res.err_message;
         }
     }
 
+    auto time2 = std::chrono::steady_clock::now();
+
+    freq::LOG() << std::chrono::duration_cast<std::chrono::milliseconds>((time2 - time1)).count();
+    freq::LOG() << "Complete!";
     return 0;
 }
