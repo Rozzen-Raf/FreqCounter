@@ -2,11 +2,9 @@
 
 #include <unordered_map>
 #include <vector>
-#include <iostream>
 #include <algorithm>
 #include "SyncPolicy.hpp"
 #include <queue>
-#include <iostream>
 #include "Trie.hpp"
 namespace freq
 {
@@ -34,34 +32,34 @@ namespace freq
 }
 namespace
 {
-    inline bool isAlpha(char ch) noexcept
+    inline bool IsAlpha(char ch) noexcept
     {
         return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z');
     }
 
-    inline bool isUpper(char ch) noexcept
+    inline bool IsUpper(char ch) noexcept
     {
         return 'A' <= ch && ch <= 'Z';
     }
 
-    inline char toLower(char ch) noexcept
+    inline char ToLower(char ch) noexcept
     {
         return ch - 'A' + 'a';
     }
 
     // ищет начало первого встречного слова
-    inline void findNextWord(std::string_view str, size_t &start_word, size_t &end_word) noexcept
+    inline void FindNextWord(std::string_view str, size_t &start_word, size_t &end_word) noexcept
     {
-        while (start_word < str.size() && !isAlpha(str[start_word]))
+        while (start_word < str.size() && !IsAlpha(str[start_word]))
         {
             ++start_word;
         }
         end_word = start_word;
     }
     // для строки десериализация происходит с иными условиями
-    template <typename INPUT_STREAM, typename SyncPolicy>
-    freq::Result deserialize(
-        INPUT_STREAM &stream,
+    template <typename InputStream, typename SyncPolicy>
+    freq::Result Deserialize(
+        InputStream &stream,
         freq::Trie &trie,
         SyncPolicy &sync) noexcept
     {
@@ -76,10 +74,12 @@ namespace
                 return {freq::Status::StreamIsBad, "Stream is bad"};
             }
 
+            // Считаем количество байт в файле
             stream.seekg(0, stream.end);
             size_t length = stream.tellg();
             stream.seekg(0, stream.beg);
 
+            // Если значение в length -1, то поток является пустым
             if (length == -1)
             {
                 return {freq::Status::StreamIsEmpty, "Stream is empty"};
@@ -97,18 +97,18 @@ namespace
             size_t end_word = 0;
 
             // Подвинем индекс сразу на начало первого слова
-            findNextWord(str, start_word, end_word);
+            FindNextWord(str, start_word, end_word);
 
             char ch = str[end_word];
-            if (isUpper(ch))
+            if (IsUpper(ch))
             {
-                str[end_word] = toLower(ch);
+                str[end_word] = ToLower(ch);
             }
 
             while (end_word < str.size())
             {
                 auto ch = str[end_word];
-                if (!isAlpha(ch))
+                if (!IsAlpha(ch))
                 {
                     // Найден конец слова, необходимо выделить и поместить ответ
                     std::string word = std::move(str.substr(start_word, end_word - start_word));
@@ -119,18 +119,17 @@ namespace
                     }
                     start_word = end_word;
                     // Найдем следующее слово
-                    findNextWord(str, start_word, end_word);
+                    FindNextWord(str, start_word, end_word);
 
                     ch = str[end_word];
-                    if (isUpper(ch))
-                    {
-                        str[end_word] = toLower(ch);
-                    }
                 }
-                else if (isUpper(ch))
+                // В данном случае ch всегда является буквой какого-то слова,
+                // если это буква находится в верхнем регистре, то переведем ее в нижний регистр
+                if (IsUpper(ch))
                 {
-                    str[end_word] = toLower(ch);
+                    str[end_word] = ToLower(ch);
                 }
+
                 ++end_word;
             }
 
@@ -147,13 +146,13 @@ namespace
     }
 
     // Сериализация счетчика частот в выходящий буфер с условием сортировки
-    template <typename OUTPUT_STREAM, typename SyncPolicy>
-    freq::Result serialize(
-        OUTPUT_STREAM &stream,
+    template <typename OutputStream, typename SyncPolicy>
+    freq::Result Serialize(
+        OutputStream &stream,
         freq::Trie &trie,
-        SyncPolicy &policy) noexcept
+        SyncPolicy &sync_policy) noexcept
     {
-        // Компаратор для построения кучи
+        // Компаратор для сортировки вектора
         struct Comp
         {
             bool operator()(const std::pair<std::string, size_t> &l, const std::pair<std::string, size_t> &r)
@@ -169,9 +168,10 @@ namespace
             }
         };
 
+        // Заполнение вектора из префиксного дерева и его дальнейшая сортировка
         std::vector<std::pair<std::string, size_t>> v;
         {
-            std::lock_guard<SyncPolicy> guard(policy);
+            std::lock_guard<SyncPolicy> guard(sync_policy);
             v = freq::TrieToVector(trie);
         }
         std::sort(v.begin(), v.end(), Comp());
@@ -200,23 +200,24 @@ namespace freq
     {
     public:
         // Подсчет частоты элементов из потока данных
-        template <typename INPUT_STREAM>
-        Result FromStream(INPUT_STREAM &stream)
+        template <typename InputStream>
+        Result FromStream(InputStream &stream)
         {
-            return deserialize(stream, trie, sync_policy);
+            return Deserialize(stream, trie, sync_policy);
         }
 
         // Запись текущей частоты элементов в поток данных
-        template <typename OUTPUT_STREAM>
-        Result ToStream(OUTPUT_STREAM &stream)
+        template <typename OutputStream>
+        Result ToStream(OutputStream &stream)
         {
 
-            return serialize(stream, trie, sync_policy);
+            return Serialize(stream, trie, sync_policy);
         }
 
     private:
         // Стратегия синхронизации
         SyncPolicy sync_policy;
+        // Префиксное дерево
         Trie trie;
     };
 }

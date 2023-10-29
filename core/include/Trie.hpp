@@ -14,21 +14,24 @@ namespace freq
     class Trie
     {
         // Возвращает новую ноду префиксного дерева
-        TrieNode *getNode();
+        TrieNode *GetNode();
         // Вставка слова в префиксное дерево
-        TrieNode *insert(std::string &&key);
+        TrieNode *InsertToRoot(std::string &&key);
         // Возвращает указатель на найденную ноду, если ноды нет, то возвращает nullptr
-        TrieNode *search(const std::string &key);
+        TrieNode *Search(const std::string &key);
         // Очищение префиксного дерева
-        void deleteTrie(TrieNode *node);
+        void DeleteTrie(TrieNode *node);
 
     public:
         Trie();
         ~Trie();
+
+        // Вставка слова в дерево
         void Insert(std::string &&key);
 
         size_t &operator[](std::string &&key);
 
+        // Возвращает корень дерева
         const TrieNode *GetRoot() const noexcept;
 
     private:
@@ -37,5 +40,5 @@ namespace freq
 
     // Преобразования дерева в вектор
     std::vector<std::pair<std::string, size_t>> TrieToVector(Trie &trie);
-    void fillVector(const TrieNode *node, std::vector<std::pair<std::string, size_t>> &vec);
+    void FillVector(const TrieNode *node, std::vector<std::pair<std::string, size_t>> &vec);
 }

@@ -11,17 +11,17 @@ namespace freq
         size_t count = 0;
         std::string word;
     };
-    Trie::Trie() : root(getNode())
+    Trie::Trie() : root(GetNode())
     {
     }
 
     Trie::~Trie()
     {
-        deleteTrie(root);
+        DeleteTrie(root);
     }
 
     // Возвращает новую ноду префиксного дерева
-    TrieNode *Trie::getNode()
+    TrieNode *Trie::GetNode()
     {
         TrieNode *node = new TrieNode;
 
@@ -31,7 +31,7 @@ namespace freq
     }
 
     // Вставка слова в префиксное дерево
-    TrieNode *Trie::insert(std::string &&key)
+    TrieNode *Trie::InsertToRoot(std::string &&key)
     {
         TrieNode *node = root;
 
@@ -39,7 +39,7 @@ namespace freq
         {
             int index = key[i] - 'a';
             if (!node->children[index])
-                node->children[index] = getNode();
+                node->children[index] = GetNode();
 
             node = node->children[index];
         }
@@ -53,7 +53,7 @@ namespace freq
     }
 
     // Возвращает указатель на найденную ноду, если ноды нет, то возвращает nullptr
-    TrieNode *Trie::search(const std::string &key)
+    TrieNode *Trie::Search(const std::string &key)
     {
         TrieNode *node = root;
 
@@ -69,7 +69,7 @@ namespace freq
     }
 
     // Очищение префиксного дерева
-    void Trie::deleteTrie(TrieNode *node)
+    void Trie::DeleteTrie(TrieNode *node)
     {
         if (!node)
             return;
@@ -79,10 +79,11 @@ namespace freq
             if (!node->children[i])
                 continue;
 
-            deleteTrie(node->children[i]);
+            DeleteTrie(node->children[i]);
         }
 
         delete node;
+        node = nullptr;
     }
 
     const TrieNode *Trie::GetRoot() const noexcept
@@ -92,15 +93,15 @@ namespace freq
 
     void Trie::Insert(std::string &&key)
     {
-        insert(std::forward<std::string>(key));
+        InsertToRoot(std::forward<std::string>(key));
     }
 
     size_t &Trie::operator[](std::string &&key)
     {
-        auto node = search(key);
+        auto node = Search(key);
 
         if (!node)
-            node = insert(std::forward<std::string>(key));
+            node = InsertToRoot(std::forward<std::string>(key));
 
         return node->count;
     }
@@ -109,11 +110,11 @@ namespace freq
     std::vector<std::pair<std::string, size_t>> TrieToVector(Trie &trie)
     {
         std::vector<std::pair<std::string, size_t>> v;
-        fillVector(trie.GetRoot(), v);
+        FillVector(trie.GetRoot(), v);
         return std::move(v);
     }
 
-    void fillVector(const TrieNode *node, std::vector<std::pair<std::string, size_t>> &vec)
+    void FillVector(const TrieNode *node, std::vector<std::pair<std::string, size_t>> &vec)
     {
         if (!node)
             return;
@@ -128,7 +129,7 @@ namespace freq
             if (!node->children[i])
                 continue;
 
-            fillVector(node->children[i], vec);
+            FillVector(node->children[i], vec);
         }
     }
 }
