@@ -6,9 +6,10 @@ namespace freq
     {
     public:
         template <typename T>
-        void operator<<(const T &obj)
+        Logger &operator<<(const T &obj)
         {
             std::cout << obj << std::endl;
+            return *this;
         }
     };
 

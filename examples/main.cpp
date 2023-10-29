@@ -5,7 +5,6 @@
 #include <map>
 #include "ThreadPool.hpp"
 #include "SyncPolicy.hpp"
-#include <filesystem>
 #include <chrono>
 int main(int argc, char **argv)
 {
@@ -22,7 +21,7 @@ int main(int argc, char **argv)
     auto settings = std::move(result.value.value());
 
     // при создании FreqCounter указываем ему мультипоточную стратегию синхронизации
-    freq::FreqCounter<std::string> fc;
+    freq::FreqCounter<> fc;
 
     // выполнение формирования счетчика частот из файла
     {

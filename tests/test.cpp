@@ -12,7 +12,7 @@ TEST_CASE("test1")
 
     std::istringstream stream(input);
 
-    freq::FreqCounter<std::string> fc;
+    freq::FreqCounter<> fc;
 
     auto result = fc.FromStream(stream);
 
@@ -45,7 +45,7 @@ TEST_CASE("test2")
 
     std::istringstream stream(input);
 
-    freq::FreqCounter<std::string> fc;
+    freq::FreqCounter<> fc;
 
     auto result = fc.FromStream(stream);
 
@@ -84,7 +84,7 @@ TEST_CASE("thread pool test")
     std::istringstream stream_one(input_one);
     std::istringstream stream_two(input_two);
 
-    freq::FreqCounter<std::string, freq::MultiThreadPolicy<>> fc;
+    freq::FreqCounter<freq::MultiThreadPolicy<>> fc;
 
     auto future_one = pool.enqueue([&fc, &stream_one]()
                                    { return fc.FromStream(stream_one); });
@@ -122,7 +122,7 @@ TEST_CASE("empty test")
 {
     std::ifstream input;
 
-    freq::FreqCounter<std::string> fc;
+    freq::FreqCounter<> fc;
 
     auto result = fc.FromStream(input);
 
@@ -146,7 +146,7 @@ TEST_CASE("fail test")
 
     std::istringstream stream(input);
 
-    freq::FreqCounter<std::string> fc;
+    freq::FreqCounter<> fc;
 
     auto result = fc.FromStream(stream);
 
